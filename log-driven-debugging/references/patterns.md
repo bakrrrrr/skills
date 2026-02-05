@@ -4,23 +4,20 @@
 
 **Symptom**: Data not arriving, wrong data, request failures
 
-**Hypothesis**: Response not parsed correctly, wrong endpoint, network issue
-
 **Log placement**:
-```javascript
-// Request
-console.log('[API] Calling:', url, { params: queryParams })
 
-// Response
+```javascript
+console.log("[API] Calling:", url, { params: queryParams });
+
 try {
-  const response = await fetch(url, options)
-  console.log('[API] Response status:', response.status)
-  const data = await response.json()
-  console.log('[API] Response data:', JSON.stringify(data, null, 2))
-  return data
+  const response = await fetch(url, options);
+  console.log("[API] Response status:", response.status);
+  const data = await response.json();
+  console.log("[API] Response data:", JSON.stringify(data, null, 2));
+  return data;
 } catch (error) {
-  console.error('[API] Error:', error.message)
-  throw error
+  console.error("[API] Error:", error.message);
+  throw error;
 }
 ```
 
@@ -30,19 +27,15 @@ try {
 
 **Symptom**: Value changes unexpectedly, UI shows wrong data
 
-**Hypothesis**: State being modified in unexpected place, reference sharing
-
 **Log placement**:
+
 ```javascript
 // Before mutation
-console.log('[State] Before update:', JSON.stringify(currentState))
+console.log("[State] Before update:", JSON.stringify(currentState));
 
 // After mutation
-Object.assign(currentState, updates)
-console.log('[State] After update:', JSON.stringify(currentState))
-
-// React component
-console.log('[Component] Props:', props, 'State:', state)
+Object.assign(currentState, updates);
+console.log("[State] After update:", JSON.stringify(currentState));
 ```
 
 ---
@@ -51,26 +44,15 @@ console.log('[Component] Props:', props, 'State:', state)
 
 **Symptom**: Race conditions, promises resolve in wrong order, undefined values
 
-**Hypothesis**: Code running before async operation completes, order of execution
-
 **Log placement**:
+
 ```javascript
-console.log('[Async] Starting operation:', operationId)
+console.log("[Async] Starting operation:", operationId);
 
-Promise.resolve()
-  .then(() => {
-    console.log('[Async] Step 1 complete')
-    return step2()
-  })
-  .then(() => {
-    console.log('[Async] Step 2 complete')
-  })
-
-// With async/await
 async function process() {
-  console.log('[Async] Step A starting')
-  await stepA()
-  console.log('[Async] Step A complete, result:', resultA)
+  console.log("[Async] Step A starting");
+  await stepA();
+  console.log("[Async] Step A complete, result:", resultA);
 }
 ```
 
@@ -80,17 +62,12 @@ async function process() {
 
 **Symptom**: Property undefined, method not found, runtime errors
 
-**Hypothesis**: Wrong type at runtime, type assertion incorrect, null not handled
-
 **Log placement**:
-```javascript
-console.log('[Types] user:', typeof user, user)
-console.log('[Types] user.id:', typeof user?.id, user?.id)
-console.log('[Types] items.length:', items?.length)
 
-// Check array operations
-console.log('[Types] Array.isArray(items):', Array.isArray(items))
-console.log('[Types] items[0]:', items?.[0])
+```javascript
+console.log("[Types] user:", typeof user, user);
+console.log("[Types] user.id:", typeof user?.id, user?.id);
+console.log("[Types] Array.isArray(items):", Array.isArray(items));
 ```
 
 ---
@@ -99,23 +76,19 @@ console.log('[Types] items[0]:', items?.[0])
 
 **Symptom**: Expected function doesn't execute, handler not triggered
 
-**Hypothesis**: Event not attached, condition preventing execution, wrong reference
-
 **Log placement**:
-```javascript
-// Event handlers
-button.addEventListener('click', (e) => {
-  console.log('[Event] Click detected on:', e.target)
-  console.log('[Event] Handler executing')
-  handleClick()
-})
 
-// Conditional execution
+```javascript
+button.addEventListener("click", (e) => {
+  console.log("[Event] Click detected on:", e.target);
+  handleClick();
+});
+
 if (shouldExecute) {
-  console.log('[Logic] Condition met, executing')
-  doSomething()
+  console.log("[Logic] Condition met, executing");
+  doSomething();
 } else {
-  console.log('[Logic] Condition false, skipping. shouldExecute:', shouldExecute)
+  console.log("[Logic] Condition false, shouldExecute:", shouldExecute);
 }
 ```
 
@@ -125,14 +98,47 @@ if (shouldExecute) {
 
 **Symptom**: Works in one environment, fails in another
 
-**Hypothesis**: Environment variables not set, missing config, different behavior
+**Log placement**:
+
+```javascript
+console.log("[Env] NODE_ENV:", process.env.NODE_ENV);
+console.log("[Env] API_URL:", process.env.API_URL);
+console.log("[Config] Loaded:", JSON.stringify(config, null, 2));
+```
+
+---
+
+## React Component Issues
+
+**Symptom**: Component not re-rendering, stale state, infinite loops
 
 **Log placement**:
+
 ```javascript
-console.log('[Env] NODE_ENV:', process.env.NODE_ENV)
-console.log('[Env] API_URL:', process.env.API_URL)
-console.log('[Config] Loaded config:', JSON.stringify(config, null, 2))
+// Track renders
+function MyComponent({ userId }) {
+  console.log("[MyComponent] Render, userId:", userId);
+
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    console.log("[MyComponent] useEffect triggered, userId:", userId);
+    fetchData(userId).then((result) => {
+      console.log("[MyComponent] Setting data:", result);
+      setData(result);
+    });
+    return () => console.log("[MyComponent] Cleanup for userId:", userId);
+  }, [userId]);
+
+  console.log("[MyComponent] Current state - data:", data);
+}
 ```
+
+**Common causes**:
+
+- Missing dependency in useEffect array
+- Object/array reference changing on every render
+- State update in render body (causes infinite loop)
 
 ---
 
@@ -140,20 +146,19 @@ console.log('[Config] Loaded config:', JSON.stringify(config, null, 2))
 
 **Symptom**: Events firing multiple times, callbacks executing unexpectedly
 
-**Hypothesis**: Duplicate listeners, closure capturing stale state
-
 **Log placement**:
+
 ```javascript
-// Track listener count
-const listenerId = Math.random().toString(36).slice(2)
-console.log('[Events] Registering listener:', listenerId)
+// Track listener registration
+const listenerId = Math.random().toString(36).slice(2, 8);
+console.log("[Events] Registering listener:", listenerId);
 
-element.addEventListener('event', (data) => {
-  console.log('[Events] Listener fired:', listenerId, 'with data:', data)
-})
+element.addEventListener("event", (data) => {
+  console.log("[Events] Listener fired:", listenerId, "data:", data);
+});
 
-// For intervals/timeouts
+// Track intervals
 const intervalId = setInterval(() => {
-  console.log('[Timer] Interval fired, counter:', counter)
-}, 1000)
+  console.log("[Timer] Interval fired, counter:", counter);
+}, 1000);
 ```

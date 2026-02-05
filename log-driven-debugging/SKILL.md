@@ -11,12 +11,29 @@ description: "Guides systematic verification-based debugging for JavaScript/Type
 
 ## Debugging Workflow
 
-1. **Gather information** - What is the exact symptom? When does it occur? What is the expected behavior?
-2. **Form hypothesis** - What could cause this? List probable causes ranked by likelihood.
-3. **Add targeted logs** - Add console.log statements at probable cause points to capture state.
-4. **Request logs from user** - Ask them to run the code and paste the console output.
-5. **Analyze logs** - Compare actual values to expected values. Verify or invalidate each hypothesis.
-6. **Iterate** - Based on evidence, refine hypothesis and repeat until root cause is found.
+1. **Gather Information**
+   - Ask: "What is the exact symptom?"
+   - Ask: "When does it occur?"
+   - Ask: "What is the expected behavior?"
+
+2. **Form Hypotheses**
+   - List 2-3 probable causes ranked by likelihood
+   - Consider: API issues, state mutations, async timing, type errors
+
+3. **Add Targeted Logs**
+   - Add `console.log` at probable cause points
+   - Use log patterns from [patterns.md](references/patterns.md)
+   - Always include context: variable names, values, and execution path
+
+4. **Request Console Output**
+   - Ask user: "Run your code and paste the complete console output"
+   - For browser: "Open DevTools (F12) → Console tab → paste output"
+
+5. **Analyze & Iterate**
+   - Compare actual vs expected values
+   - If log missing → code path is different than expected
+   - If undefined/null → trace upstream
+   - Repeat until root cause found
 
 ## Log Placement Strategy
 
@@ -27,37 +44,54 @@ description: "Guides systematic verification-based debugging for JavaScript/Type
 - **Async operations**: Log before and after promises/await points
 - **Boundary points**: Log data entering/leaving modules or components
 
-## What to Log
+## Log Format Cheatsheet
 
-Include sufficient context for diagnosis:
+| Context        | Format                                                       |
+| -------------- | ------------------------------------------------------------ |
+| Variable       | `console.log('userId:', userId)`                             |
+| Object         | `console.log('user:', JSON.stringify(user, null, 2))`        |
+| Execution path | `console.log('[Service] Method starting...')`                |
+| Error          | `console.error('[API] Failed:', error.message, error.stack)` |
+| Timing         | `console.time('op'); ... console.timeEnd('op')`              |
 
-- **Variable values**: `console.log('userId:', userId)`
-- **Object shapes**: `console.log('user:', JSON.stringify(user, null, 2))`
-- **Execution path**: `console.log('[AuthService] Checking permissions...')`
-- **Error details**: `console.error('[API] Failed:', error.message, error.stack)`
-- **Timestamps**: Use `Date.now()` or `console.time()` for timing issues
+## Example Interaction
 
-## Requesting Logs from Users
+**User**: "My API call returns undefined but should return user data"
 
-Always be specific about what to capture:
+**Agent adds logs**:
+
+```javascript
+async function getUser(id) {
+  console.log("[getUser] Called with id:", id);
+  const response = await fetch(`/api/users/${id}`);
+  console.log("[getUser] Response status:", response.status);
+  const data = await response.json();
+  console.log("[getUser] Parsed data:", JSON.stringify(data, null, 2));
+  return data.user.profile;
+}
+```
+
+**Console output reveals**:
 
 ```
-Please run your code and paste the complete console output here.
-If the issue is in a browser, open DevTools (F12) and paste:
-1. Console tab output
-2. Network tab response (if API-related)
+[getUser] Called with id: 123
+[getUser] Response status: 200
+[getUser] Parsed data: { "user": { "name": "John" } }
 ```
 
-## Interpreting Logs
+**Analysis**: `data.user.profile` is undefined because the API returns `{ user: { name } }` without a `profile` property → fix: return `data.user` or update API.
 
-- **Expected ≠ Actual**: You've found the deviation point
-- **Log missing**: The code path is different than expected
-- **Undefined/null**: Value not set at this point (trace upstream)
-- **Unexpected value**: Root cause is upstream or in transformation
+## When Not to Use
+
+- **Build/compilation errors**: Clear error messages; no logs needed
+- **Type-only issues**: Use TypeScript compiler diagnostics instead
+- **Performance profiling**: Use browser DevTools Performance tab
+- **Production debugging**: Consider structured logging (Winston, Pino)
 
 ## Common Patterns
 
 See [patterns.md](references/patterns.md) for debugging scenarios:
+
 - API/Network issues
 - State mutation issues
 - Async/timing issues
